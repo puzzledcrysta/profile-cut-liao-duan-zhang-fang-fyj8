@@ -50,6 +50,28 @@ class Review(BaseModel):
     note: str = Field(default='',max_length=500)
 
 
+class Receipts(BaseModel):
+    receipts: CsvText | None = None
+    receipts_base64: EncodedCsv | None = None
+
+    def raw(self):
+        return input_bytes(self.receipts, self.receipts_base64, SAMPLE_ROOT/'receipts.csv')
+
+
+class Evidence(BaseModel):
+    evidence: CsvText | None = None
+    evidence_base64: EncodedCsv | None = None
+
+    def raw(self):
+        return input_bytes(self.evidence, self.evidence_base64, SAMPLE_ROOT/'evidence.csv')
+
+
+class HandoverSign(BaseModel):
+    scope: Literal['TOTAL','ORDER']
+    decision: Literal['确认','退回']
+    note: str = Field(default='',max_length=500)
+
+
 def read_sample(name):
     choices = {'shift':'shift.csv','external':'external.csv'}
     if name not in choices:

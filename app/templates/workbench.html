@@ -58,6 +58,24 @@
         <div class="actions"><label>结论 <select id="decision"><option>确认</option><option>退回</option></select></label>
         <button class="btn btn--primary" type="submit">提交复核</button></div>
       </form>
+      <form id="handover" class="panel__body" hidden>
+        <details open><summary>登记合单领料回单</summary>
+          <label>回单 CSV <input id="receipts-file" type="file" accept=".csv,text/csv"></label>
+          <textarea id="receipts-csv" aria-label="领料回单 CSV" rows="3" placeholder="领料回单,合单锯切计划,合单记录值(毫米)"></textarea>
+          <div class="actions"><button type="button" id="receipts-submit" class="btn btn--primary">登记并判定</button></div>
+        </details>
+        <details><summary>补齐逐单凭据</summary>
+          <label>凭据 CSV <input id="evidence-file" type="file" accept=".csv,text/csv"></label>
+          <textarea id="evidence-csv" aria-label="逐单凭据 CSV" rows="3" placeholder="锯切计划,补录记录值(毫米)"></textarea>
+          <div class="actions"><button type="button" id="evidence-submit" class="btn">补录并重判</button></div>
+        </details>
+        <label>签认意见 <textarea id="handover-note" maxlength="500" rows="2"></textarea></label>
+        <div class="actions">
+          <label>范围 <select id="handover-scope"><option value="TOTAL">回单总额</option><option value="ORDER">逐单差异</option></select></label>
+          <label>结论 <select id="handover-decision"><option>确认</option><option>退回</option></select></label>
+          <button type="button" id="handover-submit" class="btn btn--primary">提交签认</button>
+        </div>
+      </form>
     </section></div>
       </main>
       <footer class="statusbar"><span id="state" role="status">等待输入</span><a href="/openapi.json">接口</a><span>UTC</span></footer>

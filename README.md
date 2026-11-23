@@ -18,6 +18,7 @@ docker compose up --build
 2. 在「异常计划」区分冲突、业务拒绝、重传与旧版本。
 3. 打开「型材排料」并点击任意记录的「查看依据」。
 4. 在「领料核对」检查金额或用量差异。通过「锯切批次」复算原文件，通过「班组复核」提交意见并下载证据。
+5. 在「合单交班」登记并开领料回单：先签认有凭据的合单总额结论，仓库补齐逐单凭据后重判各单差异；原交班结论与重试幂等记录可在判定历史中查核。
 
 接口定义见 `/openapi.json`。字段、允许区间及算例见 [数据字典](docs/DATA-DICTIONARY.md)，模块和回归测试见 [测试登记](docs/DEPTH.md)。
 
@@ -28,4 +29,4 @@ docker compose config --quiet
 docker compose exec -T app pytest -q
 ```
 
-`sample_data/shift.csv` 是班次数据，`sample_data/external.csv` 是独立账样例。`cases.csv` 固定业务反例，`legacy.csv` 和 `truncated.csv` 用于验证历史格式与断行。
+`sample_data/shift.csv` 是班次数据，`sample_data/external.csv` 是独立账样例。`cases.csv` 固定业务反例，`legacy.csv` 和 `truncated.csv` 用于验证历史格式与断行，`receipts.csv` 与 `evidence.csv` 是合单回单和逐单凭据样例。

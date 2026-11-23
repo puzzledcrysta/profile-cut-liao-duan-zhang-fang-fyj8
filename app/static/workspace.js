@@ -74,6 +74,39 @@ function inspect(row) {
   return cell;
 }
 
+function handoverDetail(row) {
+  const cell = el('div');
+  const choose = el('button', handoverTarget === row.receipt_id ? '签认对象 ✓' : '选为签认对象', 'btn');
+  choose.type = 'button';
+  choose.addEventListener('click', () => {
+    handoverTarget = row.receipt_id;
+    notice(`签认对象：${row.receipt_id}`);
+    render();
+  });
+  cell.append(choose);
+  const current = row.current;
+  if (current?.rows?.length) {
+    const lines = current.rows.map(item =>
+      `${item.key} · ${settings.reasons[item.code] || item.code}` +
+      (item.delta === null || item.delta === undefined ? '' : ` · 差值 ${item.delta}`));
+    cell.append(evidence('各单依据', lines));
+  }
+  const button = el('button', '判定历史', 'btn');
+  button.type = 'button';
+  button.addEventListener('click', async () => {
+    try {
+      const timeline = await query(`/api/handover/${result.manifest.run_id}/receipts/${row.receipt_id}/timeline`);
+      const lines = timeline.judgements.map(item =>
+        `#${item.seq} ${settings.reasons[item.code] || item.code}` +
+        (item.evidence_sha256 ? ` · 凭据 ${item.evidence_sha256.slice(0, 10)}` : ' · 回单层级') +
+        ` · ${item.changed.slice(11, 19)}`);
+      cell.append(evidence('历史判定（原交班结论保留）', lines));
+    } catch (error) { notice(error.message, true); }
+  });
+  cell.append(button);
+  return cell;
+}
+
 function setRun(report) {
   result = report;
   byId('created').textContent = `${report.manifest.created.slice(0, 19).replace('T', ' ')} UTC`;
@@ -93,6 +126,7 @@ async function render() {
   const stage = selected;
   byId('phase').textContent = settings.tabs[stage];
   byId('review').hidden = true;
+  byId('handover').hidden = stage !== 'handover';
   for (const link of links) {
     if (link.dataset.module === stage) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
@@ -150,6 +184,18 @@ async function render() {
         return button;
       }]];
       rows = runs;
+    } else if (stage === 'handover') {
+      const handover = await query(`/api/handover/${id}`);
+      view = [['领料回单','receipt_id'], ['合单锯切计划', row => row.keys.join('；')],
+              ['实算合计', row => row.current?.actual_total], ['回单合计','amount','num'],
+              ['差值', row => row.current?.delta, 'num'],
+              ['判定', row => row.current ? tag(row.current.code) : ''],
+              ['签认', row => row.signoffs.map(item => `${item.scope === 'TOTAL' ? '总额' : '逐单'}·${item.decision}`).join(' / ')],
+              ['依据与历史', row => handoverDetail(row)]];
+      rows = handover.receipts;
+      if (ticket === renderEpoch && handoverTarget && !rows.some(row => row.receipt_id === handoverTarget)) {
+        handoverTarget = null;
+      }
     } else {
       const timeline = await query(`/api/review/${id}`);
       view = [['版本','version','num'], ['结论','decision'], ['复核意见','note'], ['登记 UTC','changed']];
@@ -242,5 +288,59 @@ byId('review').addEventListener('submit', async event => {
     notice(error.message, true);
     if (error.status === 409) await render();
   }
+});
+
+let handoverTarget = null;
+function handoverBody(control) {
+  const text = byId(`${control}-csv`).value;
+  return text.length ? {[control]: text} : {};
+}
+for (const control of ['receipts', 'evidence']) {
+  byId(`${control}-file`).addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      const [text] = await readInput(file);
+      byId(`${control}-csv`).value = text;
+      notice(`已读取 ${file.name}`);
+    } catch (error) {
+      event.target.value = '';
+      notice(error.message, true);
+    }
+  });
+}
+byId('receipts-submit').addEventListener('click', async () => {
+  if (!result) return notice('请先运行型材排料', true);
+  try {
+    const report = await query(`/api/handover/${result.manifest.run_id}/receipts`, handoverBody('receipts'));
+    handoverTarget = report.judgements[0]?.receipt_id || handoverTarget;
+    notice(`已登记 ${report.registered} 张回单，重试不新增记录`);
+    await render();
+  } catch (error) { notice(error.message, true); }
+});
+byId('evidence-submit').addEventListener('click', async () => {
+  if (!result) return notice('请先运行型材排料', true);
+  if (!handoverTarget) return notice('请先登记并选中一张领料回单', true);
+  try {
+    const report = await query(
+      `/api/handover/${result.manifest.run_id}/receipts/${handoverTarget}/evidence`,
+      handoverBody('evidence'));
+    notice(`已按凭据重判：${settings.reasons[report.code] || report.code}`);
+    await render();
+  } catch (error) { notice(error.message, true); }
+});
+byId('handover-submit').addEventListener('click', async () => {
+  if (!result) return notice('请先运行型材排料', true);
+  if (!handoverTarget) return notice('请先登记并选中一张领料回单', true);
+  try {
+    await query(`/api/handover/${result.manifest.run_id}/receipts/${handoverTarget}/signoff`, {
+      scope: byId('handover-scope').value,
+      decision: byId('handover-decision').value,
+      note: byId('handover-note').value,
+    });
+    notice('签认已登记，原结论保留在判定历史');
+    byId('handover-note').value = '';
+    await render();
+  } catch (error) { notice(error.message, true); }
 });
 render();

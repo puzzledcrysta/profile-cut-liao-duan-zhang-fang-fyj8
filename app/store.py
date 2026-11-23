@@ -13,6 +13,26 @@ CREATE TABLE IF NOT EXISTS reviews (
   decision TEXT NOT NULL, note TEXT NOT NULL, changed TEXT NOT NULL,
   PRIMARY KEY(run_id,version)
 );
+CREATE TABLE IF NOT EXISTS handover_receipts (
+  run_id TEXT NOT NULL REFERENCES runs(id), receipt_id TEXT NOT NULL,
+  payload BLOB NOT NULL, canonical TEXT NOT NULL, keys TEXT NOT NULL, amount TEXT NOT NULL,
+  registered TEXT NOT NULL, PRIMARY KEY(run_id,receipt_id)
+);
+CREATE TABLE IF NOT EXISTS handover_evidence (
+  run_id TEXT NOT NULL, receipt_id TEXT NOT NULL, evidence_sha256 TEXT NOT NULL,
+  payload BLOB NOT NULL, recorded TEXT NOT NULL,
+  PRIMARY KEY(run_id,receipt_id,evidence_sha256)
+);
+CREATE TABLE IF NOT EXISTS handover_judgements (
+  run_id TEXT NOT NULL, receipt_id TEXT NOT NULL, seq INTEGER NOT NULL,
+  evidence_sha256 TEXT, result TEXT NOT NULL, changed TEXT NOT NULL,
+  PRIMARY KEY(run_id,receipt_id,seq)
+);
+CREATE TABLE IF NOT EXISTS handover_signoffs (
+  run_id TEXT NOT NULL, receipt_id TEXT NOT NULL, version INTEGER NOT NULL,
+  scope TEXT NOT NULL, decision TEXT NOT NULL, note TEXT NOT NULL, changed TEXT NOT NULL,
+  PRIMARY KEY(run_id,receipt_id,version)
+);
 """
 
 
